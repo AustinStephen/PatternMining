@@ -1,0 +1,151 @@
+---
+title: "Harmonic Regression"
+author: "Austin Stephen"
+date: "4/13/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(tidyverse)
+```
+
+```{r include = FALSE}
+# get the data
+data <- read_csv("../data/SMP500_post_1900.csv")
+```
+
+## TLDR
+
+* I implemented harmonic regression more or less by hand.
+
+* It did not work very well. Probably because I don't know how to find a good 
+period just looking at the data.
+
+### Formulation:
+$X_t = s_t + Y$ where $s_t$ is a periodic function and $Y$ is the noise term
+
+$s_t = a_0 + \Sigma_{j=1}^k(a_j cos(\lambda_jt)+b_jsin(\lambda_j t))$
+
+$a_1,a_2,...a_n$ and $b_1, b_2, ..,b_n$ are unknown parameters. $\lambda_1,..,\lambda_k$ are fixed frequencies as integer multiples of $2\pi / d$ where d is the period.
+
+
+A harmonic regression model allows for noise but no trend component.
+As a result, it is trained on the residuals of the multiple linear regression model used to subtract out the trend in the data. I fit the $a_j$ and $b_j$ components using the 
+least squares method with the built in function in R.
+
+The number of terms $k$ (indexing the summation) are refered to as the k-integer valued fourier components. I build a model with 1 fourier component and another with 2. Each fourier component must be 
+a fixed integer multiple of $f_1$ which denotes the first component.
+
+All of the math comes from Introduction to Time Series and Forecasting by Brockwell and Davis. Chapter 1.3 "Some simple models".
+
+
+### One fourier component  
+
+$s_t = a_0 + (a_1 cos(\lambda_jt)+b_1sin(\lambda_j t))$
+
+```{r, fig.height=3.5}
+## one fourier component
+# Difficult to infer lambda based on our data
+pi = 3.14159265
+period = 4
+lambdaTerm <- 2* pi / period
+
+data <- data %>% mutate(aTerm = sin(lambdaTerm * dateNumeric),
+                        bTerm = cos(lambdaTerm * dateNumeric))
+
+model <- lm(residualsCube ~ aTerm + bTerm, data = data)
+#summary(model)
+
+## plot curve add the curve
+data %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
+  geom_point()+
+  theme_classic()
+```
+
+### Two Fourier Components   
+
+$s_t = a_0 + (a_1 cos(\lambda_jt)+b_1sin(\lambda_j t)) + (a_2 cos(\lambda_jt)+b_2sin(\lambda_j t))$
+
+```{r fig.height=3.5}
+## two fourier components
+# Difficult to infer lambda based on out data
+period = 4
+
+lambdaTerm1 <- 2* pi / period
+
+## fixed integer multiple
+lambdaTerm2 <- 2* pi / (period* 2)
+
+
+data <- data %>% mutate(a1Term = sin(lambdaTerm1 * dateNumeric),
+                        a2Term = sin(lambdaTerm2 * dateNumeric),
+                        b1Term = cos(lambdaTerm1 * dateNumeric),
+                        b2Term = cos(lambdaTerm2 * dateNumeric)
+                  )
+
+model2 <- lm(residualsCube ~ aTerm + bTerm + a2Term + b2Term, data = data)
+#summary(model)
+
+## plot curve -> add the curve 
+data %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
+  geom_point()+
+  theme_classic()
+  
+```
+
+## Same thing but with data from 1950 on
+```{r include = FALSE}
+data_1950 <- read_csv("../data/SMP500_post_1950.csv")
+```
+
+```{r fig.height =3.5}
+data_1950 <- data_1950 %>% mutate(aTerm = sin(lambdaTerm * dateNumeric),
+                                  bTerm = cos(lambdaTerm * dateNumeric))
+
+model <- lm(residualsCube ~ aTerm + bTerm, data = data_1950)
+#summary(model)
+
+## plot curve add the curve
+data_1950 %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
+  geom_point()+
+  theme_classic()
+
+lambdaTerm1 <- 2* pi / period
+
+## fixed integer multiple
+lambdaTerm2 <- 2* pi / (period* 2)
+
+
+data_1950 <- data_1950 %>% mutate(a1Term = sin(lambdaTerm1 * dateNumeric),
+                        a2Term = sin(lambdaTerm2 * dateNumeric),
+                        b1Term = cos(lambdaTerm * dateNumeric),
+                        b2Term = cos(lambdaTerm2 * dateNumeric)
+                  )
+
+model2 <- lm(residualsCube ~ aTerm + bTerm + a2Term + b2Term, data = data_1950)
+#summary(model)
+
+## plot curve -> add the curve 
+data_1950 %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
+  geom_point()+
+  theme_classic()
+```
+
+### Train/test analysis
+
+```{r}
+## train on 1950-2005 -> predict 2005-current 16 years
+train <- data_1950 %>% filter(dataNumeric < 48588)
+test <- data_1950 %>% filter(dataNumeric >= 48588)
+
+## model predictions 
+
+# predictions %>% ggplot(aes(x=dateNumeric,y=pred))+
+#   geom_point()+
+#   theme_classic()
+
+## convert back to original scale 
+```
+
