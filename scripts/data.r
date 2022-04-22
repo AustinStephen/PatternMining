@@ -6,22 +6,12 @@ library(tidyverse)
 
 data <- read.csv("data/SMP500.csv")
 
-## discretize the data, date management 
+## date to numeric so models can be built 
 data <- data %>% mutate(
-    date = as.Date(Date,format ="%Y-%d-%m"),
-    dateNumeric = as.numeric(date) + 36159,
-    dateNumeric2 = dateNumeric**2,
-    dateNumeric3 = dateNumeric**3,
-    discrRes1 = as.factor(round(SP500, digits = 0)),
-    discrRes2 = as.factor(round(SP500/10, digits = 0) *10),
-    discrRes3 = as.factor(round(SP500/100, digits = 0) *100),
-    discrRes4 = as.factor(round(SP500/200, digits = 0) * 200),
-    discrRes5 = as.factor(round(SP500/350, digits = 0) * 350),
-    discrRes6 = as.factor(round(SP500/400, digits = 0) * 400),
-    discrRes7 = as.factor(round(SP500/1000, digits = 0) * 1000)
-    ) %>%
-  select(-Date)
-#summary(data)
+  date = as.Date(Date,format ="%Y-%d-%m"),
+  dateNumeric = as.numeric(date) + 36159,
+  dateNumeric2 = dateNumeric**2,
+  dateNumeric3 = dateNumeric**3)
 
 ## building models to look at the residuals
 mLinear <- lm(SP500 ~ dateNumeric, data=data)
@@ -50,6 +40,20 @@ data %>% ggplot(aes(x=dateNumeric, y=residualsQuad))+
 data %>% ggplot(aes(x=dateNumeric, y=residualsCube))+
   geom_point()+
   geom_smooth()
+
+
+## discretize the data for Natalie's work
+data <- data %>% mutate(
+  discrRes1 = as.factor(round(residualsCube/80, digits = 0)*80),
+  discrRes2 = as.factor(round(residualsCube/110, digits = 0) *110),
+  discrRes3 = as.factor(round(residualsCube/140, digits = 0) *140),
+  discrRes4 = as.factor(round(residualsCube/150, digits = 0) * 150),
+  discrRes5 = as.factor(round(residualsCube/175, digits = 0) * 175),
+  discrRes6 = as.factor(round(residualsCube/200, digits = 0) * 200),
+  discrRes7 = as.factor(round(residualsCube/250, digits = 0) * 250)
+) %>%
+  select(-Date)
+#summary(data)
 
 dataWrite <- data %>% select(-c(dateNumeric2,dateNumeric3))
 ## writting the data
@@ -90,6 +94,7 @@ write.csv(dataWrite,"data/SMP500_post_1900.csv", row.names = FALSE)
 # remove observations pre 1900
 data_1950 <- data %>% filter( dateNumeric > 28854)
 
+summary(data_1950)
 
 # building models to get the residuals
 mLinear <- lm(SP500 ~ dateNumeric, data=data_1950)

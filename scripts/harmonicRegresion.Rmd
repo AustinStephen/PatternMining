@@ -9,6 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(readr)
 library(tidyverse)
+library(ggiraphExtra) 
 ```
 
 ```{r include = FALSE}
@@ -18,10 +19,19 @@ data <- read_csv("../data/SMP500_post_1900.csv")
 
 ## TLDR
 
-* I implemented harmonic regression more or less by hand.
+* I implemented harmonic regression by hand.
 
-* It did not work very well. Probably because I don't know how to find a good 
-period just looking at the data.
+* It did not work very well but generates some interesting plots. 
+This is probably because I don't know how to find a good 
+period just looking at the data and the data changes a lot.
+
+* The last plot shows performance on the test set.
+
+* Next step for me is to write a function that adds together the predictions from 
+a harmonic regression like model and the removed trend from the regression.
+
+* Another next step is for me to implement a different algorithm.
+
 
 ### Formulation:
 $X_t = s_t + Y$ where $s_t$ is a periodic function and $Y$ is the noise term
@@ -49,18 +59,26 @@ $s_t = a_0 + (a_1 cos(\lambda_jt)+b_1sin(\lambda_j t))$
 ## one fourier component
 # Difficult to infer lambda based on our data
 pi = 3.14159265
-period = 4
+period = 200
 lambdaTerm <- 2* pi / period
 
 data <- data %>% mutate(aTerm = sin(lambdaTerm * dateNumeric),
                         bTerm = cos(lambdaTerm * dateNumeric))
 
 model <- lm(residualsCube ~ aTerm + bTerm, data = data)
+
 #summary(model)
 
-## plot curve add the curve
+# showing what the model predicts
+tmp <- data.frame( aTerm = sin(lambdaTerm * data$dateNumeric),
+                   bTerm = cos(lambdaTerm * data$dateNumeric),
+                   dateNumeric = data$dateNumeric)
+
+tmp$predictions <- predict(model,tmp)
+
 data %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
   geom_point()+
+  geom_point(aes(y = tmp$predictions, color = "red"), size = .5)+
   theme_classic()
 ```
 
@@ -71,26 +89,35 @@ $s_t = a_0 + (a_1 cos(\lambda_jt)+b_1sin(\lambda_j t)) + (a_2 cos(\lambda_jt)+b_
 ```{r fig.height=3.5}
 ## two fourier components
 # Difficult to infer lambda based on out data
-period = 4
+period = 500
 
 lambdaTerm1 <- 2* pi / period
 
 ## fixed integer multiple
-lambdaTerm2 <- 2* pi / (period* 2)
+lambdaTerm2 <- 2* pi / (period* 20)
 
 
-data <- data %>% mutate(a1Term = sin(lambdaTerm1 * dateNumeric),
+data2 <- data %>% mutate(a1Term = sin(lambdaTerm1 * dateNumeric),
                         a2Term = sin(lambdaTerm2 * dateNumeric),
                         b1Term = cos(lambdaTerm1 * dateNumeric),
                         b2Term = cos(lambdaTerm2 * dateNumeric)
                   )
 
-model2 <- lm(residualsCube ~ aTerm + bTerm + a2Term + b2Term, data = data)
+model2 <- lm(residualsCube ~ a1Term + b1Term + a2Term + b2Term, data = data2)
 #summary(model)
 
-## plot curve -> add the curve 
+# showing what the model predicts
+tmp2 <- data.frame(a1Term = sin(lambdaTerm1 * data2$dateNumeric),
+                  a2Term = sin(lambdaTerm2 * data2$dateNumeric),
+                  b1Term = cos(lambdaTerm1 * data2$dateNumeric),
+                  b2Term = cos(lambdaTerm2 * data2$dateNumeric),
+                  dateNumeric = data2$dateNumeric)
+
+tmp2$predictions <- predict(model2,tmp2)
+
 data %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
   geom_point()+
+  geom_point(aes(y = tmp2$predictions, color = "red"),size = .5)+  
   theme_classic()
   
 ```
@@ -101,51 +128,130 @@ data_1950 <- read_csv("../data/SMP500_post_1950.csv")
 ```
 
 ```{r fig.height =3.5}
+period = 500
+
+lambdaTerm <- 2* pi / period
+
 data_1950 <- data_1950 %>% mutate(aTerm = sin(lambdaTerm * dateNumeric),
                                   bTerm = cos(lambdaTerm * dateNumeric))
 
-model <- lm(residualsCube ~ aTerm + bTerm, data = data_1950)
+model <- lm(residualsCube ~ aTerm + bTerm, data =data_1950 )
 #summary(model)
 
-## plot curve add the curve
+# showing what the model predicts
+tmp <- data.frame( aTerm = sin(lambdaTerm * data_1950$dateNumeric),
+                   bTerm = cos(lambdaTerm * data_1950$dateNumeric),
+                   dateNumeric = data_1950$dateNumeric)
+
+tmp$predictions <- predict(model,tmp)
 data_1950 %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
   geom_point()+
+  geom_point(aes(y = tmp$predictions, color = "red"),size = .5)+ 
   theme_classic()
+```
 
+```{r fig.height=3.5}
+## 2 fourier components
 lambdaTerm1 <- 2* pi / period
 
 ## fixed integer multiple
-lambdaTerm2 <- 2* pi / (period* 2)
+lambdaTerm2 <- 2* pi / (period* 20)
 
 
-data_1950 <- data_1950 %>% mutate(a1Term = sin(lambdaTerm1 * dateNumeric),
-                        a2Term = sin(lambdaTerm2 * dateNumeric),
-                        b1Term = cos(lambdaTerm * dateNumeric),
-                        b2Term = cos(lambdaTerm2 * dateNumeric)
+data_1950 <- data_1950 %>% mutate(
+                              a1Term = sin(lambdaTerm1 * dateNumeric),
+                              a2Term = sin(lambdaTerm2 * dateNumeric),
+                              b1Term = cos(lambdaTerm1 * dateNumeric),
+                              b2Term = cos(lambdaTerm2 * dateNumeric)
                   )
 
-model2 <- lm(residualsCube ~ aTerm + bTerm + a2Term + b2Term, data = data_1950)
+model2 <- lm(residualsCube ~ a1Term + b1Term + a2Term + b2Term, data = data_1950)
 #summary(model)
+
+# showing what the model predicts
+tmp2 <- data.frame(a1Term = sin(lambdaTerm1 * data_1950$dateNumeric),
+                  a2Term = sin(lambdaTerm2 * data_1950$dateNumeric),
+                  b1Term = cos(lambdaTerm1 * data_1950$dateNumeric),
+                  b2Term = cos(lambdaTerm2 * data_1950$dateNumeric),
+                  dateNumeric = data_1950$dateNumeric)
+
+tmp2$predictions <- predict(model2,tmp2)
 
 ## plot curve -> add the curve 
 data_1950 %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
   geom_point()+
+  geom_point(aes(y = tmp2$predictions, color = "red"),size = .75)+
   theme_classic()
 ```
 
 ### Train/test analysis
 
-```{r}
+```{r fig.height= 3.5}
 ## train on 1950-2005 -> predict 2005-current 16 years
-train <- data_1950 %>% filter(dataNumeric < 48588)
-test <- data_1950 %>% filter(dataNumeric >= 48588)
+train <- data_1950 %>% filter(dateNumeric < 48588)
+test <- data_1950 %>% filter(dateNumeric >= 48588)
+data_1950 <- data_1950 %>% 
+  mutate ( test = case_when(
+    dateNumeric >= 48588 ~ 1,
+    TRUE ~ 0)
+           )
+                            
+## 2 fourier components
+# first term
+lambdaTerm1 <- 2* pi / period
 
-## model predictions 
+## fixed integer multiple
+lambdaTerm2 <- 2* pi / (period* 20)
 
-# predictions %>% ggplot(aes(x=dateNumeric,y=pred))+
-#   geom_point()+
-#   theme_classic()
+# setting up the training data
+train <- train %>% mutate(
+                              a1Term = sin(lambdaTerm1 * dateNumeric),
+                              a2Term = sin(lambdaTerm2 * dateNumeric),
+                              b1Term = cos(lambdaTerm * dateNumeric),
+                              b2Term = cos(lambdaTerm2 * dateNumeric)
+                  )
 
-## convert back to original scale 
+# setting the test data to write to a csv file
+test <- test %>% mutate(
+                              a1Term = sin(lambdaTerm1 * dateNumeric),
+                              a2Term = sin(lambdaTerm2 * dateNumeric),
+                              b1Term = cos(lambdaTerm * dateNumeric),
+                              b2Term = cos(lambdaTerm2 * dateNumeric)
+                  )
+# build the model on training data
+model2 <- lm(residualsCube ~ a1Term + b1Term + a2Term + b2Term, data = train)
+#summary(model)
+
+# rmse value
+rmse <- sqrt(mean(model2$residuals^2))
+
+# get the test set predictions
+test$predictions <- predict(model2,test)
+test$rmse <- rmse
+
+test <- test %>% select(predictions,rmse)
+
+write.csv(test,"../data/AustinModel1.csv", row.names = FALSE)
+
+# for showing what the model predicts
+
+data_1950$predictions <- predict(model2,data_1950)
+
+
+
+## plot curve -> add the curve 
+pick <- function(condition){
+  function(d) d %>% filter_(condition)
+}
+
+data_1950 %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
+  geom_point(alpha =.5)+
+  geom_smooth(data = pick(~test == 1),
+              aes(y = predictions),
+              se=FALSE,
+              color= "darkred")+
+  geom_point(data = pick(~test == 1),
+             aes(y = predictions, color = "darkred"))+
+  theme_classic()
 ```
 
