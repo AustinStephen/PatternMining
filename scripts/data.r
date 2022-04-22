@@ -13,6 +13,7 @@ data <- data %>% mutate(
   dateNumeric2 = dateNumeric**2,
   dateNumeric3 = dateNumeric**3)
 
+
 ## building models to look at the residuals
 mLinear <- lm(SP500 ~ dateNumeric, data=data)
 
@@ -94,22 +95,23 @@ write.csv(dataWrite,"data/SMP500_post_1900.csv", row.names = FALSE)
 # remove observations pre 1900
 data_1950 <- data %>% filter( dateNumeric > 28854)
 
-summary(data_1950)
+# get the training data
+training_data <- data_1950 %>% filter(dateNumeric < 48943)
+test_data <- data_1950 %>% filter(dateNumeric >= 48943)
 
-# building models to get the residuals
-mLinear <- lm(SP500 ~ dateNumeric, data=data_1950)
+# building the model to get the residuals
+mCube <- lm(SP500 ~ dateNumeric + dateNumeric2 + dateNumeric3, data=training_data)  
 
-mQuad <- lm(SP500 ~ dateNumeric + dateNumeric2, data=data_1950)  
+## residuals on the train data
+resid <- mCube$residuals
 
-mCube <- lm(SP500 ~ dateNumeric + dateNumeric2 + dateNumeric3, data=data_1950)  
+## predicting on the test data
+resid2 <- test_data$SP500 - predict(mCube,test_data)
 
-# summary(mLinear)
-# summary(mQuad)
-# summary(mCube)
+# joining the residuals
+full <- c(resid, resid2)
 
-data_1950$residualsLinear <- mLinear$residuals
-data_1950$residualsQuad <- mQuad$residuals
-data_1950$residualsCube <- mCube$residuals
+data_1950$residualsCube <- full
 
 # removing junk columns
 dataWrite <-data_1950 %>% select(-c(dateNumeric2,dateNumeric3))
