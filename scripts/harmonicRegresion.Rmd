@@ -188,8 +188,8 @@ data_1950 %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
 
 ```{r fig.height= 3.5}
 ## train on 1950-2005 -> predict 2005-current 16 years
-train <- data_1950 %>% filter(dateNumeric < 48588)
-test <- data_1950 %>% filter(dateNumeric >= 48588)
+train <- data_1950 %>% filter(dateNumeric < 48943)
+test <- data_1950 %>% filter(dateNumeric >= 48943)
 data_1950 <- data_1950 %>% 
   mutate ( test = case_when(
     dateNumeric >= 48588 ~ 1,

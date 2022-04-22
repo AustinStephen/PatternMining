@@ -92,7 +92,7 @@ write.csv(dataWrite,"data/SMP500_post_1900.csv", row.names = FALSE)
 # Repeating everything from 1950 on ---------------------------------------
 # Repeating everything for post 1900 --------------------------------------
 
-# remove observations pre 1900
+# remove observations pre 1950
 data_1950 <- data %>% filter( dateNumeric > 28854)
 
 # get the training data
@@ -113,9 +113,6 @@ full <- c(resid, resid2)
 
 data_1950$residualsCube <- full
 
-# removing junk columns
-dataWrite <-data_1950 %>% select(-c(dateNumeric2,dateNumeric3))
-
-## writting the data
-write.csv(dataWrite,"data/SMP500_post_1950.csv", row.names = FALSE)
+## writing the data
+write.csv(data_1950,"data/SMP500_post_1950.csv", row.names = FALSE)
 
