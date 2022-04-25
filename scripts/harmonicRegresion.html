@@ -357,31 +357,13 @@ rmse &lt;- sqrt(mean(model2$residuals^2))
 
 # get the test set predictions
 test$predictions &lt;- predict(model2,test)
+test$rmse &lt;- rmse
 
-summary(model2)</code></pre>
-<pre><code>## 
-## Call:
-## lm(formula = residualsCube ~ a1Term + b1Term + a2Term + b2Term, 
-##     data = train)
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -258.14  -65.20  -25.92   40.23  524.22 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)   15.554      4.612   3.372 0.000789 ***
-## a1Term         6.731      6.490   1.037 0.300065    
-## b1Term         4.207      6.557   0.642 0.521410    
-## a2Term       -77.300      6.522 -11.852  &lt; 2e-16 ***
-## b2Term       -44.851      6.523  -6.876 1.44e-11 ***
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Residual standard error: 118.3 on 653 degrees of freedom
-## Multiple R-squared:  0.2244, Adjusted R-squared:  0.2196 
-## F-statistic: 47.22 on 4 and 653 DF,  p-value: &lt; 2.2e-16</code></pre>
-<pre class="r"><code># for showing what the model predicts
+test &lt;- test %&gt;% select(predictions,rmse)
+
+write.csv(test,&quot;../data/AustinModel1.csv&quot;, row.names = FALSE)
+
+# for showing what the model predicts
 
 data_1950$predictions &lt;- predict(model2,data_1950)
 
