@@ -95,6 +95,8 @@ write.csv(dataWrite,"data/SMP500_post_1900.csv", row.names = FALSE)
 # remove observations pre 1950
 data_1950 <- data %>% filter( dateNumeric > 28854)
 
+data_1950$year <- format(data_1950$date, format="%y")
+
 # get the training data
 training_data <- data_1950 %>% filter(dateNumeric < 48943)
 test_data <- data_1950 %>% filter(dateNumeric >= 48943)
