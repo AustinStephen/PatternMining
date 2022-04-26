@@ -43,7 +43,7 @@ smp_preds <- smp_preds[1:160]
 smp_preds
 
 test["preds"] <- smp_preds
-test["rmse"] <- sqrt((test$residualsCube - test$preds)**2)
+rmse <- sum(sqrt((test$residualsCube - test$preds)**2))
 
 
 
@@ -54,7 +54,7 @@ test %>% ggplot(aes(x=date,y=residualsCube))+
   theme_classic()
 
 
-tmp <- select(test, c("preds", "rmse"))
+tmp <- select(test, c("preds"))
 
 write.csv(tmp,"~/Documents/ml/finalProject/repo/data/nat_predictions.csv", row.names = TRUE)
 
