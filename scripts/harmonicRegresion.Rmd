@@ -2,7 +2,9 @@
 title: "Harmonic Regression"
 author: "Austin Stephen"
 date: "4/13/2022"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -16,22 +18,6 @@ library(ggiraphExtra)
 # get the data
 data <- read_csv("../data/SMP500_post_1900.csv")
 ```
-
-## TLDR
-
-* I implemented harmonic regression by hand.
-
-* It did not work very well but generates some interesting plots. 
-This is probably because I don't know how to find a good 
-period just looking at the data and the data changes a lot.
-
-* The last plot shows performance on the test set.
-
-* Next step for me is to write a function that adds together the predictions from 
-a harmonic regression like model and the removed trend from the regression.
-
-* Another next step is for me to implement a different algorithm.
-
 
 ### Formulation:
 $X_t = s_t + Y$ where $s_t$ is a periodic function and $Y$ is the noise term
@@ -122,6 +108,8 @@ data %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
   
 ```
 
+Went through hand tuning of the period on the sine curve. This lives in a weird grey area as I've visually seen the test set so I could bias it on accident. It would be best too design a way to tune it automatically.
+
 ## Same thing but with data from 1950 on
 ```{r include = FALSE}
 data_1950 <- read_csv("../data/SMP500_post_1950.csv")
@@ -181,7 +169,13 @@ tmp2$predictions <- predict(model2,tmp2)
 data_1950 %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
   geom_point()+
   geom_point(aes(y = tmp2$predictions, color = "red"),size = .75)+
-  theme_classic()
+  theme_classic()+
+  labs(title = "Harmonic Regression Predictions (Red)",
+      legend.position = "none")+
+  ylab("Market Residual")+
+  xlab("Date")+
+  theme_classic() +
+  theme(axis.text.x = element_blank())
 ```
 
 ### Train/test analysis
@@ -252,6 +246,11 @@ data_1950 %>% ggplot(aes(x=dateNumeric,y=residualsCube))+
               color= "darkred")+
   geom_point(data = pick(~test == 1),
              aes(y = predictions, color = "darkred"))+
-  theme_classic()
+  labs(title = "Harmonic Regression Predictions (Red)",
+      legend.position = "none")+
+  ylab("Market Residual")+
+  xlab("Date")+
+  theme_classic() +
+  theme(axis.text.x = element_blank())
 ```
 
